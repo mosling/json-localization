@@ -1,11 +1,14 @@
 import json
 import os
-import sys
-from gooey import Gooey, GooeyParser
 from argparse import ArgumentParser
 
 
 def load_json(filename):
+    '''
+    Load a json file into memory.
+    :param filename: the filename
+    :return: the result of json.load
+    '''
     data = {}
     try:
         with open(filename, 'r', encoding="utf-8") as infile:
@@ -17,6 +20,12 @@ def load_json(filename):
 
 
 def save_json(filename, data):
+    '''
+    Write the data to the file using json style.
+    :param filename: the filename to write
+    :param data: the json data
+    :return: nothing
+    '''
     try:
         with open(filename, 'w', encoding="utf-8") as outfile:
             json.dump(data, outfile, indent=4)
@@ -28,30 +37,37 @@ def replace_values(json_data, mapping, keys, path=''):
     for k in json_data:
         e = json_data[k]
         p = path + '.' + k
-        
+
         # first check id we must replace the entry
         if p in keys:
             if json_data[k] in mapping:
                 json_data[k] = mapping[e]
             else:
                 print("no mapping found for {} read '{}'".format(e, p))
-                
+
         if type(e) is dict:
             replace_values(json_data[k], mapping, keys, p)
-            
+
         if type(e) is list:
             for i in e:
                 replace_values(i, mapping, keys, p)
 
 
-def add_arguments(parser):
+def parse_arguments():
+    '''
+    Simple wrapper to allow run without the great gooey interface if the script is
+    used in a automatic build environment.
+    :return: the dictionary of the paresed arguments
+    '''
+    parser = ArgumentParser(
+        description='Replace all keys from translation file find in given json-path.')
+
     parser.add_argument(
         '-p',
         '--project',
         action="store",
         metavar="Project File",
         required=True,
-        widget="FileChooser",
         help="Select the general project json-file with translation keys."
     )
     parser.add_argument(
@@ -60,7 +76,6 @@ def add_arguments(parser):
         action="store",
         metavar="Translation File",
         required=True,
-        widget="FileChooser",
         help="Select the translation file (json with key/value pairs)."
     )
     parser.add_argument(
@@ -73,34 +88,11 @@ def add_arguments(parser):
         help="Comma separated list of keys which can be translated"
     )
 
-@Gooey(
-    program_name="Json-Translator",
-    optional_cols=1
-)
-def interview_arguments():
-    parser = GooeyParser(
-        description="Replace all keys from translation file find in given json-path."
-    )
-
-    pg = parser.add_argument_group()
-    add_arguments(pg)
-    return parser.parse_args()
-
-
-def parse_arguments():
-    parser = ArgumentParser(
-        description='Replace all keys from translation file find in given json-path.')
-
-    add_arguments(parser)
     return parser.parse_args()
 
 
 def main():
-
-    if 1 < len(sys.argv) and "--nogui" == sys.argv[1]:
-        args = parse_arguments()
-    else:
-        args = interview_arguments()
+    args = parse_arguments()
 
     project_file = args.project
     project_name = os.path.splitext(os.path.basename(project_file))[0]
